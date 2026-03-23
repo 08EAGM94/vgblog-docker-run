@@ -1,0 +1,43 @@
+services:
+  web:
+    image: 08edgarallan94/videogame-blog:latest
+    ports:
+      # puedes poner los puertos (maquina anfitrion:contenedor) que quieras.
+      - "8081:80"
+    environment:
+      - SQL_SERVER=mssql_server
+      # si cambias el puerto del contenedor de sql server, recuerda actualizarlo aquí también, el puerto por defecto de sql server es el 1433, si quieres usar otro puerto en el contenedor, asegúrate de mapearlo correctamente en la sección de puertos del servicio db.
+      - SQL_PORT=1433
+      - SQL_DATABASE=Phpandsql
+      - SQL_UID=sa
+      - SQL_PWD=PasswordSeguro123!
+    networks:
+      - vg-blog-network
+    depends_on:
+      - db 
+  db:
+  # Se usa otro dockerfile en este caso de creación del contenedor de la base de datos (sql server), esto con el fin de importar la base de datos contenida en la carpeta vgbackup, el comando bash que se llama en ese dockerfile no hace nada si detecta que la base de datos existe gracias al volumen de este contenedor
+    build:
+      context: .
+      dockerfile: Dockerfile.sql
+    container_name: mssql_server
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=PasswordSeguro123!
+    ports:
+    # puedes poner los puertos (maquina anfitrion:contenedor) que quieras.
+      - "1434:1433"
+    networks:
+      - vg-blog-network
+    volumes:
+    # todo cambio en la base de datos se conserva
+      - sql_data:/var/opt/mssql/data
+    # en este caso se guarda el archivo Phpandsql.bak a la carpeta backup del contenedor de sql server para efectuar la restauración con el bash que llama el Dockerfile.sql  
+      - ./vgbackup:/var/opt/mssql/backup
+
+networks:
+  vg-blog-network:
+    driver: bridge 
+
+volumes:
+  sql_data:
